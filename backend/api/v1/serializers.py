@@ -3,11 +3,17 @@ import datetime as dt
 from django.contrib.auth import get_user_model
 import webcolors
 from django.core.files.base import ContentFile
+from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
+from user.models import Follow
+from foodgram.models import Recipe, Tag, Ingredient, Favorite
+from rest_framework.validators import UniqueTogetherValidator
 
-from foodgram.models import Recipe, Tag, Ingredient
 
 User = get_user_model()
+
+
+
 
 
 class Hex2NameColor(serializers.Field):
@@ -23,11 +29,16 @@ class Hex2NameColor(serializers.Field):
 
 
 class TagSerializer(serializers.ModelSerializer):
-    tag_name = serializers.CharField(source='name')
     color = Hex2NameColor()
     class Meta:
         model = Tag
-        fields = ('id', 'tag_name', 'color', 'slug')
+        fields = ('id', 'name', 'color', 'slug')
+
+
+class IngredientSerialiazer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = "__all__"
 
 
 class Base64ImageField(serializers.ImageField):
@@ -41,67 +52,98 @@ class Base64ImageField(serializers.ImageField):
         return super().to_internal_value(data)
 
 
-class ReceipeSerializer(serializers.ModelSerializer):
+
+
+class FollowSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(
+        read_only=True, slug_field='username',
+        default=serializers.CurrentUserDefault())
+    following = serializers.SlugRelatedField(
+        slug_field='username', queryset=User.objects.all())
+
+    class Meta:
+        model = Follow
+        fields = ('user', 'following','created')
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=['user', 'following'],
+                message='Нельзя дважды подписаться на одного человека.'
+            )
+        ]
+
+    def validate_following(self, data):
+        request = self.context.get('request')
+        following = data
+        if request.user == following:
+            raise serializers.ValidationError(
+                "Низя на себя подиписываться."
+            )
+        return data
+
+
+class CustomUserSerializer(UserCreateSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+
+    class Meta():
+        model = User
+        fields = ('id', 'email', 'username', 'first_name', 'last_name',
+                  'is_subscribed')
+        
+    def get_is_subscribes(self, obj):
+        user = self.context.get('request').user
+        if user.is_anonymous():
+            return False
+        else:
+            return Follow.objects.filter(user=user,author=obj.id).exists()
+
+class CreateUserSerializer(UserCreateSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'email', 'username',
+                  'first_name', 'last_name',
+                  'password')
+
+
+
+
+class ReceipeCreareSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
         slug_field='username',
         default=serializers.CurrentUserDefault()
     )
+    tag = TagSerializer(many=True)
+    image = Base64ImageField(required=False, allow_null=True)
+    ingredients = IngredientSerialiazer(many=True)
+    #cooking_duration = serializers.DurationField(min_value=dt.timedelta(minutes=1))
+    
+    class Meta:
+        model = Recipe
+        fields = ('__all__')
+    
+
+    def create(self, validated_data):
+        if 'ingredients' and 'tag' not in self.initial_data:
+            recipe = Recipe.objects.create(**validated_data)
+            return recipe
+        if 
+
+
+
+class ReceipeAllSerializer(serializers.ModelSerializer):
+    author = CustomUserSerializer(read_only=True)
     tags = TagSerializer(many=True)
     image = Base64ImageField(required=False, allow_null=True)
-    image_url = serializers.SerializerMethodField(
-        'get_image_url',
-        read_only=True,
-    )
+    
 
     class Meta:
         model = Recipe
         fields = ('__all__')
         read_only_fields = ('owner',)
 
-    def get_image_url(self, obj):
-        if obj.image:
-            return obj.image.url
-        return None
 
-    def get_age(self, obj):
-        return dt.datetime.now().year - obj.birth_year
-
-    def create(self, validated_data):
-        if 'achievements' not in self.initial_data:
-            cat = Cat.objects.create(**validated_data)
-            return cat
-        achievements = validated_data.pop('achievements')
-        cat = Cat.objects.create(**validated_data)
-        for achievement in achievements:
-            current_achievement, status = Achievement.objects.get_or_create(
-                **achievement
-            )
-            AchievementCat.objects.create(
-                achievement=current_achievement, cat=cat
-            )
-        return cat
-
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.color = validated_data.get('color', instance.color)
-        instance.birth_year = validated_data.get(
-            'birth_year', instance.birth_year
-        )
-        instance.image = validated_data.get('image', instance.image)
-
-        if 'achievements' not in validated_data:
-            instance.save()
-            return instance
-
-        achievements_data = validated_data.pop('achievements')
-        lst = []
-        for achievement in achievements_data:
-            current_achievement, status = Achievement.objects.get_or_create(
-                **achievement
-            )
-            lst.append(current_achievement)
-        instance.achievements.set(lst)
-
-        instance.save()
-        return instance
+class FavoriteSerialiser(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = ('id', 'receipes__name', 'receipes__image', 'receipes__cooking_time')

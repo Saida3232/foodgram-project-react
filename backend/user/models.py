@@ -19,6 +19,26 @@ class User(AbstractUser):
 
 
 class Follow(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
-    author = models.ForeignKey(User, verbose_name="author", on_delete=models.CASCADE, related_name='followers')
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='пользователь')
+    following = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='followers',
+        verbose_name='подписки')
     created = models.DateTimeField("time created",auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'подписка'
+        verbose_name_plural = 'подписки'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('user', 'following'),
+                name='unique following',
+            ),
+        )
+
+    def __str__(self) -> str:
+        return f'{self.user} : {self.following}'
+    
