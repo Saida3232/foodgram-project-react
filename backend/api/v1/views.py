@@ -1,46 +1,36 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import SAFE_METHODS
+from rest_framework.decorators import action
 # from django_filters import rest_framework
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from foodgram.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
-                             ShoppingCard, Tag, TagRecipe, IngredientInRecipe)
+from foodgram.models import (
+    Ingredient,
+    Recipe,
+    Tag,
+)
 
-from .serializers import (CustomCreateUserSerializer, CustomUserSerializer,
-                          FollowSerializer, IngredientSerialiazer,ReceipeListSerializer,
-                          TagSerializer, FavoriteSerialiser, ReceipeCreateUpdateSerializer)
+from .serializers import (
+    IngredientSerialiazer,
+    RecipeReadSerializer,
+    TagSerializer, RecipeCreateSerializer
+)
 
 
 User = get_user_model()
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    queryset = Recipe.objects.all().order_by('created')
-    http_method_names = ('get', 'post', 'patch', 'head', 'delete')
-    permission_classes = (AllowAny,)
-
+    queryset = Recipe.objects.select_related("author").prefetch_related(
+        "tags", "ingredients")
 
     def get_serializer_class(self):
-        if self.action in ['retrive', 'list']:
-            return ReceipeListSerializer
-        return ReceipeCreateUpdateSerializer
-
-    def get_recipe(self):
-        return get_object_or_404(
-            Recipe, pk=self.kwargs['recipe_id'],
-        )
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user, recipe=self.get_recipe())
-
-    def get_serializer_context(self):
-        """Метод для передачи контекста. """
-
-        context = super().get_serializer_context()
-        context.update({'request': self.request})
-        return context
+        if self.request.method in SAFE_METHODS:
+            return RecipeReadSerializer
+        return RecipeCreateSerializer
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
