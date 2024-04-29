@@ -43,7 +43,7 @@ class Recipe(models.Model):
     text = models.TextField("text")
     ingredients = models.ManyToManyField(Ingredient, through='IngredientInRecipe',
                                          related_name='recipes',)
-    tag = models.ManyToManyField(Tag, verbose_name="recipes", through='TagRecipe')
+    tags = models.ManyToManyField(Tag, verbose_name="recipes", through='TagRecipe')
     cooking_duration = models.IntegerField("time for cooking",validators=[
         MinValueValidator(1)])
     created = models.DateTimeField(auto_now_add=True)
@@ -78,14 +78,14 @@ class IngredientInRecipe(models.Model):
 
 
 class TagRecipe(models.Model):
-    tag = models.ForeignKey(Tag,on_delete=models.CASCADE,verbose_name="tag")
+    tags = models.ForeignKey(Tag,on_delete=models.CASCADE,verbose_name="tag")
     recipe = models.ForeignKey(Recipe, verbose_name="recipe", on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'Тег рецепта'
         verbose_name_plural = 'Теги рецепта'
         constraints = [
-            models.UniqueConstraint(fields=['tag', 'recipe'],
+            models.UniqueConstraint(fields=['tags', 'recipe'],
                                     name='unique_tagrecipe')
         ]
 

@@ -6,7 +6,7 @@ from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer
 from rest_framework import serializers
 from user.models import Follow
-from foodgram.models import Recipe, Tag, Ingredient, Favorite
+from foodgram.models import Recipe, Tag, Ingredient, Favorite, TagRecipe, IngredientInRecipe, ShoppingCard
 from rest_framework.validators import UniqueTogetherValidator
 
 
@@ -116,36 +116,31 @@ class RecipeCreareSerializer(serializers.ModelSerializer):
         slug_field='username',
         default=serializers.CurrentUserDefault()
     )
-    tag = TagSerializer(many=True)
-    image = Base64ImageField(required=False, allow_null=True)
-    ingredients = IngredientSerialiazer(many=True)
-    #cooking_duration = serializers.DurationField(min_value=dt.timedelta(minutes=1))
-    
-    class Meta:
-        model = Recipe
-        fields = ('__all__')
-    
-
-    def create(self, validated_data):
-        if 'ingredients' and 'tag' not in self.initial_data:
-            recipe = Recipe.objects.create(**validated_data)
-            return recipe
-
-
-
-
-class ReceipeAllSerializer(serializers.ModelSerializer):
-    author = CustomUserSerializer(read_only=True)
     tags = TagSerializer(many=True)
     image = Base64ImageField(required=False, allow_null=True)
+    ingredients = IngredientSerialiazer(many=True)
     
+    class Meta:
+        model = Recipe
+        fields = ('ingredients','tags','image','name','text','cooking_time')
+
+
+class ReceipeAllSerializer(RecipeCreareSerializer):
+    author = CustomUserSerializer(read_only=True)
 
     class Meta:
         model = Recipe
-        fields = ('__all__')
-        read_only_fields = ('owner',)
+        fields = ('id','tags','author','ingredients','is_favorite',
+                  'is_in_shopping_cart','name','image','text','cooking_time')
     
-
+    def get_is_favorite(self, obj):
+        user = self.context.get('request').user
+        return Favorite.objects.filter(user=user,recipe=obj.id).exists()
+    
+    def get_is_in_shopping_cart(self, obj):
+        user= self.context.get('request').user
+        return ShoppingCard.objects.filter(user=user,recipe=obj.id).exists()
+        
 
 
 class FavoriteSerialiser(serializers.ModelSerializer):
