@@ -6,12 +6,11 @@ from rest_framework import filters, mixins, status, viewsets
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from foodgram.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
-                             ShoppingCard, Tag, TagRecipe)
+                             ShoppingCard, Tag, TagRecipe, IngredientInRecipe)
 
 from .serializers import (CustomCreateUserSerializer, CustomUserSerializer,
-                          FollowSerializer, IngredientSerialiazer,
-                          ReceipeAllSerializer, RecipeCreareSerializer,
-                          TagSerializer, FavoriteSerialiser)
+                          FollowSerializer, IngredientSerialiazer,ReceipeListSerializer,
+                          TagSerializer, FavoriteSerialiser, ReceipeCreateUpdateSerializer)
 
 
 User = get_user_model()
@@ -22,18 +21,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
     http_method_names = ('get', 'post', 'patch', 'head', 'delete')
     permission_classes = (AllowAny,)
 
+
     def get_serializer_class(self):
         if self.action in ['retrive', 'list']:
-            return ReceipeAllSerializer
-        return RecipeCreareSerializer
+            return ReceipeListSerializer
+        return ReceipeCreateUpdateSerializer
 
     def get_recipe(self):
         return get_object_or_404(
-            Recipe, pk=self.kwargs['recipe_pk'],
+            Recipe, pk=self.kwargs['recipe_id'],
         )
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user, recipe=self.get_recipe())
+
+    def get_serializer_context(self):
+        """Метод для передачи контекста. """
+
+        context = super().get_serializer_context()
+        context.update({'request': self.request})
+        return context
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

@@ -130,3 +130,15 @@ class ShoppingCard(models.Model):
 
     def __str__(self):
         return f'{self.user} {self.recipe}'
+
+
+# {
+#     "name": "Барсик",
+#     "color": "White",
+#     "birth_year": 2017,
+#     "owner": 1,
+#     "ingredients": [
+#         {"name": "поймал мышку",'amount':'90','measurement_unit':'gr'},
+#         {"name": "разбил вазу"}
+#     ]
+# } 
