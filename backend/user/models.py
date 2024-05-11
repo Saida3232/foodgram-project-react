@@ -5,9 +5,9 @@ from django.db import models
 
 
 class User(AbstractUser):
-    email = models.EmailField("email_address", unique=True, max_length=254)
-    first_name = models.CharField("first_name", max_length=254)
-    last_name = models.CharField("last_name", max_length=254)
+    email = models.EmailField("email", unique=True, max_length=150)
+    first_name = models.CharField("first_name", max_length=150)
+    last_name = models.CharField("last_name", max_length=150)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
 
@@ -15,8 +15,6 @@ class User(AbstractUser):
         ordering = ['id']
 
     def __str__(self):
-        """Строковое представление модели"""
-
         return self.username
 
 
