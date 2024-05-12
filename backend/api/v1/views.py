@@ -24,7 +24,7 @@ from foodgram.models import (
 )
 from user.models import User
 
-from .filters import RecipeFilter
+from .filters import RecipeFilter, IngredientFilter
 from .permissions import IsAuthorOrOnlyRead
 from .serializers import (
     CreateRecipeSerializer,
@@ -42,6 +42,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (AllowAny,)
+    pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -49,14 +50,16 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
     filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
     search_fields = ("^name",)
+    pagination_class = None
 
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.select_related("author").prefetch_related(
         "tags", "ingredients"
     )
-    permission_classes = [IsAuthorOrOnlyRead]
+    permission_classes = [IsAuthorOrOnlyRead, IsAuthenticated]
     filter_backends = (DjangoFilterBackend,)
     http_method_names = ("get", "post", "patch", "head", "delete")
     filterset_class = RecipeFilter
@@ -164,15 +167,23 @@ class RecipeViewSet(ModelViewSet):
         return response_object
 
 
-class UserViewSet(UserViewSet):
+class CustomUserViewSet(UserViewSet):
     queryset = User.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get_permissions(self):
+        if self.action == "me":
+            return (IsAuthenticated(),)
+        elif self.action == 'retrive':
+            return (AllowAny(),)
+        return super().get_permissions()
 
     @action(detail=False, methods=["get"],
             permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
         subscriptions = User.objects.filter(follow__user=request.user)
+        
         serializer = FollowSerializer(
             subscriptions, many=True, context={"request": request}
         )
@@ -187,9 +198,11 @@ class UserViewSet(UserViewSet):
             data={"user": request.user.id, "author": id},
             context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @subscribe.mapping.delete
     def delete_subscribe(self, request, id=None):

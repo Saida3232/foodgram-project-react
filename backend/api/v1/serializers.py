@@ -1,6 +1,7 @@
 import base64
 
 from django.core.files.base import ContentFile
+from django.core.exceptions import ObjectDoesNotExist
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 from webcolors import hex_to_name, hex_to_rgb
@@ -43,7 +44,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class BaseRecipeSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(required=False, allow_null=True)
+    image = Base64ImageField(required=True, allow_null=False)
 
     class Meta:
         model = Recipe
@@ -148,7 +149,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
     ingredients = CreateIngredientSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Tag.objects.all())
-    image = Base64ImageField(required=False, allow_null=True)
+    image = Base64ImageField(required=True, allow_null=False)
 
     class Meta:
         model = Recipe
@@ -164,15 +165,26 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         ingredients = data.get("ingredients")
+        id_ingredients = [ingredient['id'] for ingredient in ingredients]
+
         tags = data.get("tags")
+        try:
+            for ingredient_id in id_ingredients:
+                Ingredient.objects.get(pk=ingredient_id)
+        except ObjectDoesNotExist as e:
+            raise serializers.ValidationError(f"Ингредиент с id {ingredient_id} не существует")
 
         if not ingredients:
             raise serializers.ValidationError(
                 "Нужно добавить хотя бы один ингредиент")
-
-        if not tags:
+        elif len(id_ingredients) != len(set(id_ingredients)):
+            raise serializers.ValidationError('Нельзя добавлять одинаковые ингредиенты')
+        if not tags:#спросить к Георгия почему теги не нужно засовывать в список
             raise serializers.ValidationError(
                 "Нужно добавить хотя бы один тег.")
+        elif len(tags) != len(set(tags)):
+            raise serializers.ValidationError('Нельзя добавлять одинаковые теги.')
+
 
         return data
 
@@ -184,6 +196,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             RecipeIngredient.objects.create(
                 ingredient=ingredient, recipe=recipe, amount=amount
             )
+
 
     def create(self, validated_data):
         ingredients = validated_data.pop("ingredients")
