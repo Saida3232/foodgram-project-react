@@ -228,16 +228,16 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         return ReadRecipeSerializer(instance, context=self.context).data
 
 
-class FollowSerializer(UserSerializer):
+class FollowSerializer(CustomUserSerializer):
     recipes_count = serializers.ReadOnlyField(source="recipes.count")
     recipes = serializers.SerializerMethodField()
 
-    class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + (
+    class Meta(CustomUserSerializer.Meta):
+        fields = CustomUserSerializer.Meta.fields + (
             "recipes",
             "recipes_count",
         )
-        read_only_fields = ("email", "username", "first_name", "last_name")
+        read_only_fields = ("email", "username", "first_name", "last_name",'is_subscribed')
 
     def get_recipes(self, obj):
         recipes = obj.recipes.all()

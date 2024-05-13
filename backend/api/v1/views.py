@@ -59,7 +59,7 @@ class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.select_related("author").prefetch_related(
         "tags", "ingredients"
     )
-    permission_classes = [IsAuthorOrOnlyRead, IsAuthenticated]
+    permission_classes = [IsAuthorOrOnlyRead,]
     filter_backends = (DjangoFilterBackend,)
     http_method_names = ("get", "post", "patch", "head", "delete")
     filterset_class = RecipeFilter
@@ -76,15 +76,22 @@ class RecipeViewSet(ModelViewSet):
         context.update({"request": self.request})
         return context
 
+
     @action(
         detail=True, permission_classes=(IsAuthenticated,),
         methods=("post", "delete")
     )
     def favorite(self, request, pk=None):
         user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
 
         if request.method == "POST":
+            try:
+                recipe = Recipe.objects.get(pk=pk)
+            except Recipe.DoesNotExist:
+                return Response(
+                    "Такого рецепта не существует.",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             favorite, created = Favorite.objects.get_or_create(
                 user=user, recipe=recipe)
             if not created:
@@ -96,6 +103,7 @@ class RecipeViewSet(ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif request.method == "DELETE":
+            recipe = get_object_or_404(Recipe, pk=pk)
             try:
                 favorite = Favorite.objects.get(user=user, recipe=recipe)
                 favorite.delete()
@@ -116,9 +124,15 @@ class RecipeViewSet(ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         user = request.user
-        recipe = get_object_or_404(Recipe, pk=pk)
-
+        
         if request.method == "POST":
+            try:
+                recipe = Recipe.objects.get(pk=pk)
+            except Recipe.DoesNotExist:
+                return Response(
+                    "Такого рецепта не существует.",
+                    status=status.HTTP_400_BAD_REQUEST,
+            )
             cart, created = ShoppingCart.objects.get_or_create(
                 user=user, recipe=recipe)
             if not created:
@@ -130,6 +144,7 @@ class RecipeViewSet(ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         elif request.method == "DELETE":
+            recipe = get_object_or_404(Recipe, pk=pk)
             try:
                 cart = ShoppingCart.objects.get(user=user, recipe=recipe)
                 cart.delete()
@@ -183,7 +198,6 @@ class CustomUserViewSet(UserViewSet):
             permission_classes=[IsAuthenticated])
     def subscriptions(self, request):
         subscriptions = User.objects.filter(follow__user=request.user)
-        
         serializer = FollowSerializer(
             subscriptions, many=True, context={"request": request}
         )
@@ -194,6 +208,7 @@ class CustomUserViewSet(UserViewSet):
         permission_classes=[permissions.IsAuthenticated]
     )
     def subscribe(self, request, id=None):
+        get_object_or_404(User,id=id)
         serializer = FollowCreateSerializer(
             data={"user": request.user.id, "author": id},
             context={"request": request}
@@ -206,14 +221,16 @@ class CustomUserViewSet(UserViewSet):
 
     @subscribe.mapping.delete
     def delete_subscribe(self, request, id=None):
-        subscriptions = Follow.objects.filter(user=request.user, author=id)
+        author = get_object_or_404(User,id=id)
+        subscriptions = Follow.objects.filter(user=request.user, author=author)
+
         if subscriptions.exists():
             subscriptions.delete()
             return Response(
                 "Вы отписались от пользователя.",
                 status=status.HTTP_204_NO_CONTENT
             )
-        return Response(
+        return Response(  
             "Вы не подписаны на этого пользователя.",
             status=status.HTTP_400_BAD_REQUEST
         )

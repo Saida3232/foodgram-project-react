@@ -13,7 +13,8 @@ class RecipeFilter(FilterSet):
     cooking_time = django_filters.NumberFilter(
         field_name='cooking_time', lookup_expr='lte', label='Максимальное время приготовления рецепта')
     is_favorited = django_filters.NumberFilter(method='favorite')
-    in_shopping_cart = django_filters.NumberFilter(method='shopping_cart')
+    is_in_shopping_cart = django_filters.NumberFilter(method='shopping_cart')
+    is_in_shopping_cart
     author = django_filters.NumberFilter(
         field_name='author__id', lookup_expr='exact', label='author')
 
