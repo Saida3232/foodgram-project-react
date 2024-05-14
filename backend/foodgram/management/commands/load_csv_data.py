@@ -2,7 +2,7 @@ import csv
 
 from django.core.management.base import BaseCommand
 
-from foodgram.models import Ingredient,Tag
+from foodgram.models import Ingredient, Tag
 
 
 class Command(BaseCommand):

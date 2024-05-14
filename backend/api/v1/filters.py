@@ -4,6 +4,7 @@ from django_filters.rest_framework import FilterSet
 
 from foodgram.models import Tag
 
+
 class RecipeFilter(FilterSet):
     tags = django_filters.ModelMultipleChoiceFilter(field_name='tags__slug',
                                                     to_field_name='slug',
@@ -11,7 +12,9 @@ class RecipeFilter(FilterSet):
                                                     queryset=Tag.objects.all()
                                                     )
     cooking_time = django_filters.NumberFilter(
-        field_name='cooking_time', lookup_expr='lte', label='Максимальное время приготовления рецепта')
+        field_name='cooking_time',
+        lookup_expr='lte',
+        label='Максимальное время приготовления рецепта')
     is_favorited = django_filters.NumberFilter(method='favorite')
     is_in_shopping_cart = django_filters.NumberFilter(method='shopping_cart')
     is_in_shopping_cart

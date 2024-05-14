@@ -1,13 +1,13 @@
 import base64
 
-from django.core.files.base import ContentFile
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 from webcolors import hex_to_name, hex_to_rgb
 
-from foodgram.models import (Favorite, Follow, Ingredient, RecipeIngredient,
-                             Recipe, ShoppingCart, Tag)
+from foodgram.models import (Favorite, Follow, Ingredient, Recipe,
+                             RecipeIngredient, ShoppingCart, Tag)
 from user.models import User
 
 

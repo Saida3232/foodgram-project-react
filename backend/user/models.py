@@ -27,7 +27,6 @@ class Follow(models.Model):
         User, on_delete=models.CASCADE,
         related_name='followers',
         verbose_name='подписки')
-    created = models.DateTimeField("time created", auto_now_add=True)#убрать
 
     class Meta:
         verbose_name = 'подписка'
