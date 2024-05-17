@@ -25,6 +25,7 @@ from foodgram.models import (
 )
 from user.models import User
 from .filters import RecipeFilter, IngredientSearch
+from .paginations import LimitNumberPagination
 from .permissions import IsAuthorOrOnlyRead
 from .serializers import (
     CreateRecipeSerializer,
@@ -51,7 +52,8 @@ class CustomUserViewSet(UserViewSet):
         return super().get_permissions()
 
     @action(detail=False, methods=["get"],
-            permission_classes=[IsAuthenticated])
+            permission_classes=[IsAuthenticated],
+            pagination_class=LimitNumberPagination)
     def subscriptions(self, request):
         subscriptions = User.objects.filter(follow__user=request.user)
         if subscriptions is None:
@@ -123,6 +125,7 @@ class RecipeViewSet(ModelViewSet):
     http_method_names = ("get", "post", "patch", "head", "delete")
     filterset_class = RecipeFilter
     ordering_fields = ["name", "created", "author"]
+    pagination_class = LimitNumberPagination
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
