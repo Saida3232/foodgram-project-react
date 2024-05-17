@@ -14,5 +14,3 @@ djoser==2.1.0
 webcolors==1.11.1
 Pillow==9.0.0
 PyYAML==6.0
-flake8==6.0.0
-flake8-isort==6.0.0 

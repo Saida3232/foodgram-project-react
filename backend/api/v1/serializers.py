@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from webcolors import hex_to_name, hex_to_rgb
 
-from foodgram.models import (Favorite, Follow, Ingredient, Recipe,
+from foodgram.models import (Favorite, Follow, Ingredient, Recipe, TagInRecipe,
                              RecipeIngredient, ShoppingCart, Tag)
 from user.models import User
 
@@ -53,6 +53,7 @@ class BaseRecipeSerializer(serializers.ModelSerializer):
 
 
 class FavoriteOrShoppingRecipeSerializer(BaseRecipeSerializer):
+    image = Base64ImageField()
 
     class Meta(BaseRecipeSerializer.Meta):
         read_only_fields = ("__all__",)
@@ -150,7 +151,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
     ingredients = CreateIngredientSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Tag.objects.all())
-    image = Base64ImageField(required=True, allow_null=False)
+    image = Base64ImageField(use_url=True)
 
     class Meta:
         model = Recipe
@@ -166,6 +167,8 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         ingredients = data.get("ingredients")
+        if ingredients is None:
+            raise serializers.ValidationError('Обязательно добавьте поле ингредиентов.')
         id_ingredients = [ingredient['id'] for ingredient in ingredients]
 
         tags = data.get("tags")
@@ -180,7 +183,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                 "Нужно добавить хотя бы один ингредиент")
         elif len(id_ingredients) != len(set(id_ingredients)):
             raise serializers.ValidationError('Нельзя добавлять одинаковые ингредиенты')
-        if not tags:#спросить к Георгия почему теги не нужно засовывать в список
+        if not tags:
             raise serializers.ValidationError(
                 "Нужно добавить хотя бы один тег.")
         elif len(tags) != len(set(tags)):
@@ -210,28 +213,29 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        updated_data = validated_data.copy()
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.cooking_time = validated_data.get('cooking_time',
+                                                   instance.cooking_time)
+        instance.image = validated_data.get('image', instance.image)
+        RecipeIngredient.objects.filter(recipe=instance).delete()
+        TagInRecipe.objects.filter(recipe=instance).delete()
 
-        for attr, value in validated_data.items():
-            if attr == "ingredients":
-                RecipeIngredient.objects.filter(recipe=instance).delete()
-                self.create_ingredients(
-                    updated_data.pop("ingredients"), instance)
-            elif attr == "tags":
-                instance.tags.set(value)
-            else:
-                setattr(instance, attr, value)
+        self.create_ingredients(validated_data.pop('ingredients'), instance)
+        instance.tags.set(validated_data.pop('tags'))
 
         instance.save()
         return instance
+
 
     def to_representation(self, instance):
         return ReadRecipeSerializer(instance, context=self.context).data
 
 
 class FollowSerializer(CustomUserSerializer):
-    recipes_count = serializers.ReadOnlyField(source="recipes.count")
     recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.ReadOnlyField(source="recipes.count")
+    
 
     class Meta(CustomUserSerializer.Meta):
         fields = CustomUserSerializer.Meta.fields + (
@@ -241,13 +245,13 @@ class FollowSerializer(CustomUserSerializer):
         read_only_fields = ("email", "username", "first_name", "last_name",'is_subscribed')
 
     def get_recipes(self, obj):
+        request = self.context.get('request')
         recipes = obj.recipes.all()
-        recipes_limit = self.context.get(
-            "request").query_params.get("recipes_limit")
+        recipes_limit = request.query_params.get('recipes_limit')
         if recipes_limit:
             recipes = recipes[: int(recipes_limit)]
         return BaseRecipeSerializer(recipes, many=True).data
-
+        
 
 class FollowCreateSerializer(serializers.ModelSerializer):
     class Meta:
