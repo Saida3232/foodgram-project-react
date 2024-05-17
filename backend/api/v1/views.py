@@ -56,19 +56,18 @@ class CustomUserViewSet(UserViewSet):
         subscriptions = User.objects.filter(follow__user=request.user)
         if subscriptions is None:
             return Response('Вы еще ни на кого не подписались.',
-                        status=status.HTTP_400_BAD_REQUEST)
+                            status=status.HTTP_400_BAD_REQUEST)
         pages = self.paginate_queryset(subscriptions)
         serializer = FollowSerializer(pages, many=True,
-                                        context={'request': request})
+                                      context={'request': request})
         return self.get_paginated_response(serializer.data)
-        
-        
+
     @action(
         detail=True, methods=["post"],
         permission_classes=[permissions.IsAuthenticated]
     )
     def subscribe(self, request, id=None):
-        get_object_or_404(User,id=id)
+        get_object_or_404(User, id=id)
         serializer = FollowCreateSerializer(
             data={"user": request.user.id, "author": id},
             context={"request": request}
@@ -76,12 +75,12 @@ class CustomUserViewSet(UserViewSet):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @subscribe.mapping.delete
     def delete_subscribe(self, request, id=None):
-        author = get_object_or_404(User,id=id)
+        author = get_object_or_404(User, id=id)
         subscriptions = Follow.objects.filter(user=request.user, author=author)
 
         if subscriptions.exists():
@@ -90,11 +89,11 @@ class CustomUserViewSet(UserViewSet):
                 "Вы отписались от пользователя.",
                 status=status.HTTP_204_NO_CONTENT
             )
-        return Response(  
+        return Response(
             "Вы не подписаны на этого пользователя.",
             status=status.HTTP_400_BAD_REQUEST
         )
-    
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context.update({"request": self.request})
@@ -177,7 +176,7 @@ class RecipeViewSet(ModelViewSet):
     )
     def shopping_cart(self, request, pk=None):
         user = request.user
-        
+
         if request.method == "POST":
             try:
                 recipe = Recipe.objects.get(pk=pk)
@@ -185,7 +184,7 @@ class RecipeViewSet(ModelViewSet):
                 return Response(
                     "Такого рецепта не существует.",
                     status=status.HTTP_400_BAD_REQUEST,
-            )
+                )
             cart, created = ShoppingCart.objects.get_or_create(
                 user=user, recipe=recipe)
             if not created:
@@ -233,4 +232,3 @@ class RecipeViewSet(ModelViewSet):
             )
         response_object.write(ingredients)
         return response_object
-

@@ -6,6 +6,24 @@ from django.db import models
 User = get_user_model()
 
 
+class Ingredient(models.Model):
+    name = models.CharField(
+        max_length=200, verbose_name="Название"
+    )
+
+    measurement_unit = models.CharField(
+        max_length=200, verbose_name="Единица измерения"
+    )
+
+    class Meta:
+        ordering = ("name",)
+        verbose_name = "Ингредиент"
+        verbose_name_plural = "Ингредиенты"
+
+    def __str__(self):
+        return f"{self.name}, {self.measurement_unit}"
+
+
 class Tag(models.Model):
     name = models.CharField(max_length=150, unique=True,
                             verbose_name="Название")
@@ -34,24 +52,6 @@ class Tag(models.Model):
 
     def __str__(self):
         return self.name
-
-
-class Ingredient(models.Model):
-    name = models.CharField(
-        max_length=200, verbose_name="Название"
-    )
-
-    measurement_unit = models.CharField(
-        max_length=200, verbose_name="Единица измерения"
-    )
-
-    class Meta:
-        ordering = ("name",)
-        verbose_name = "Ингредиент"
-        verbose_name_plural = "Ингредиенты"
-
-    def __str__(self):
-        return f"{self.name}, {self.measurement_unit}"
 
 
 class Recipe(models.Model):
@@ -129,6 +129,32 @@ class RecipeIngredient(models.Model):
         return f"{self.ingredient} {self.recipe}"
 
 
+class Follow(models.Model):
+    author = models.ForeignKey(
+        User,
+        related_name="follow",
+        on_delete=models.CASCADE,
+        verbose_name="Автор рецепта",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="follower",
+        verbose_name="Подписчик",
+    )
+
+    class Meta:
+        verbose_name = "Подписка"
+        verbose_name_plural = "Подписки"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "author"], name="unique_follow")
+        ]
+
+    def __str__(self):
+        return f"Пользователь {self.user} подписался на {self.author}"
+
+
 class TagInRecipe(models.Model):
     tag = models.ForeignKey(
         Tag,
@@ -178,32 +204,6 @@ class ShoppingCart(models.Model):
 
     def __str__(self):
         return f"{self.user} {self.recipe}"
-
-
-class Follow(models.Model):
-    author = models.ForeignKey(
-        User,
-        related_name="follow",
-        on_delete=models.CASCADE,
-        verbose_name="Автор рецепта",
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="follower",
-        verbose_name="Подписчик",
-    )
-
-    class Meta:
-        verbose_name = "Подписка"
-        verbose_name_plural = "Подписки"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "author"], name="unique_follow")
-        ]
-
-    def __str__(self):
-        return f"Пользователь {self.user} подписался на {self.author}"
 
 
 class Favorite(models.Model):

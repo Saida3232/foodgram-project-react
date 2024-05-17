@@ -1,26 +1,14 @@
 import base64
+from webcolors import hex_to_name, hex_to_rgb
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
-from webcolors import hex_to_name, hex_to_rgb
-
 from foodgram.models import (Favorite, Follow, Ingredient, Recipe, TagInRecipe,
                              RecipeIngredient, ShoppingCart, Tag)
 from user.models import User
-
-
-class Base64ImageField(serializers.ImageField):
-    def to_internal_value(self, data):
-        if isinstance(data, str) and data.startswith("data:image"):
-            format, imgstr = data.split(";base64,")
-            ext = format.split("/")[-1]
-
-            data = ContentFile(base64.b64decode(imgstr), name="temp." + ext)
-
-        return super().to_internal_value(data)
 
 
 class Hex2NameColor(serializers.Field):
@@ -34,6 +22,17 @@ class Hex2NameColor(serializers.Field):
         except ValueError:
             raise serializers.ValidationError("Для этого цвета нет имени")
         return data
+
+
+class Base64ImageField(serializers.ImageField):
+    def to_internal_value(self, data):
+        if isinstance(data, str) and data.startswith("data:image"):
+            format, imgstr = data.split(";base64,")
+            ext = format.split("/")[-1]
+
+            data = ContentFile(base64.b64decode(imgstr), name="temp." + ext)
+
+        return super().to_internal_value(data)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -168,27 +167,30 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
     def validate(self, data):
         ingredients = data.get("ingredients")
         if ingredients is None:
-            raise serializers.ValidationError('Обязательно добавьте поле ингредиентов.')
+            raise serializers.ValidationError(
+                'Обязательно добавьте поле ингредиентов.')
         id_ingredients = [ingredient['id'] for ingredient in ingredients]
 
         tags = data.get("tags")
         try:
             for ingredient_id in id_ingredients:
                 Ingredient.objects.get(pk=ingredient_id)
-        except ObjectDoesNotExist as e:
-            raise serializers.ValidationError(f"Ингредиент с id {ingredient_id} не существует")
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError(
+                f"Ингредиент с id {ingredient_id} не существует")
 
         if not ingredients:
             raise serializers.ValidationError(
                 "Нужно добавить хотя бы один ингредиент")
         elif len(id_ingredients) != len(set(id_ingredients)):
-            raise serializers.ValidationError('Нельзя добавлять одинаковые ингредиенты')
+            raise serializers.ValidationError(
+                'Нельзя добавлять одинаковые ингредиенты')
         if not tags:
             raise serializers.ValidationError(
                 "Нужно добавить хотя бы один тег.")
         elif len(tags) != len(set(tags)):
-            raise serializers.ValidationError('Нельзя добавлять одинаковые теги.')
-
+            raise serializers.ValidationError(
+                'Нельзя добавлять одинаковые теги.')
 
         return data
 
@@ -200,7 +202,6 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
             RecipeIngredient.objects.create(
                 ingredient=ingredient, recipe=recipe, amount=amount
             )
-
 
     def create(self, validated_data):
         ingredients = validated_data.pop("ingredients")
@@ -227,7 +228,6 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-
     def to_representation(self, instance):
         return ReadRecipeSerializer(instance, context=self.context).data
 
@@ -235,14 +235,14 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 class FollowSerializer(CustomUserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.ReadOnlyField(source="recipes.count")
-    
 
     class Meta(CustomUserSerializer.Meta):
         fields = CustomUserSerializer.Meta.fields + (
             "recipes",
             "recipes_count",
         )
-        read_only_fields = ("email", "username", "first_name", "last_name",'is_subscribed')
+        read_only_fields = ("email", "username", "first_name",
+                            "last_name", 'is_subscribed')
 
     def get_recipes(self, obj):
         request = self.context.get('request')
@@ -251,7 +251,7 @@ class FollowSerializer(CustomUserSerializer):
         if recipes_limit:
             recipes = recipes[: int(recipes_limit)]
         return BaseRecipeSerializer(recipes, many=True).data
-        
+
 
 class FollowCreateSerializer(serializers.ModelSerializer):
     class Meta:
