@@ -3,16 +3,17 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
-from rest_framework import status, viewsets, permissions
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
+    SAFE_METHODS
 )
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from rest_framework import permissions
+
 from foodgram.models import (
     Favorite,
     Follow,
@@ -23,7 +24,6 @@ from foodgram.models import (
     Tag,
 )
 from user.models import User
-
 from .filters import RecipeFilter, IngredientSearch
 from .permissions import IsAuthorOrOnlyRead
 from .serializers import (
@@ -64,7 +64,7 @@ class CustomUserViewSet(UserViewSet):
 
     @action(
         detail=True, methods=["post"],
-        permission_classes=[permissions.IsAuthenticated]
+        permission_classes=[IsAuthenticated]
     )
     def subscribe(self, request, id=None):
         get_object_or_404(User, id=id)
@@ -118,14 +118,14 @@ class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.select_related("author").prefetch_related(
         "tags", "ingredients"
     )
-    permission_classes = [IsAuthorOrOnlyRead,]
+    permission_classes = [IsAuthorOrOnlyRead, ]
     filter_backends = (DjangoFilterBackend,)
     http_method_names = ("get", "post", "patch", "head", "delete")
     filterset_class = RecipeFilter
     ordering_fields = ["name", "created", "author"]
 
     def get_serializer_class(self):
-        if self.request.method in permissions.SAFE_METHODS:
+        if self.request.method in SAFE_METHODS:
             return ReadRecipeSerializer
         return CreateRecipeSerializer
 

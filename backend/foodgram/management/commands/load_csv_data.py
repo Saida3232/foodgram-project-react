@@ -18,4 +18,3 @@ class Command(BaseCommand):
                 color = row['color']
                 tag = Tag(name=name, slug=slug, color=color)
                 tag.save()
-    
