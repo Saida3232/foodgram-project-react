@@ -69,32 +69,31 @@ class CustomUserViewSet(UserViewSet):
         permission_classes=[IsAuthenticated]
     )
     def subscribe(self, request, id=None):
-        get_object_or_404(User, id=id)
-        serializer = FollowCreateSerializer(
-            data={"user": request.user.id, "author": id},
-            context={"request": request}
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @subscribe.mapping.delete
-    def delete_subscribe(self, request, id=None):
         author = get_object_or_404(User, id=id)
-        subscriptions = Follow.objects.filter(user=request.user, author=author)
-
-        if subscriptions.exists():
-            subscriptions.delete()
-            return Response(
-                "Вы отписались от пользователя.",
-                status=status.HTTP_204_NO_CONTENT
+        if request.method == 'POST':
+            serializer = FollowCreateSerializer(
+                data={"user": request.user.id, "author": id},
+                context={"request": request}
             )
-        return Response(
-            "Вы не подписаны на этого пользователя.",
-            status=status.HTTP_400_BAD_REQUEST
-        )
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        elif request.method == "DELETE":
+            subscriptions = Follow.objects.filter(user=request.user, author=author)
+
+            if subscriptions.exists():
+                subscriptions.delete()
+                return Response(
+                    "Вы отписались от пользователя.",
+                    status=status.HTTP_204_NO_CONTENT
+                )
+            return Response(
+                "Вы не подписаны на этого пользователя.",
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -233,5 +232,4 @@ class RecipeViewSet(ModelViewSet):
                 f"Единица измерения: {ingredient[1]},"
                 f" Количество: {ingredient[2]}\n"
             )
-        response_object.write(ingredients)
         return response_object
