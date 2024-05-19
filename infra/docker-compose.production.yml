@@ -27,7 +27,8 @@ services:
   frontend:
     image: saida3232/foodgram_frontend
     volumes:
-      - ../frontend/:/app/result_build/
+      - static_volume:/static
+    command: cp -r /app/build/. /static/
 
   nginx:
     container_name: nginx
