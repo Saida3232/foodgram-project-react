@@ -27,7 +27,7 @@ debug = debug_str.lower() == 'true'
 
 DEBUG = debug
 
-ALLOWED_HOSTS = ['158.160.15.239', '127.0.0.1', 'localhost', 'foodgramsai.zapto.org']
+ALLOWED_HOSTS = ['158.160.15.239', '127.0.0.1', 'localhost', 'recipegram.zapto.org']
 
 # Application definition
 
