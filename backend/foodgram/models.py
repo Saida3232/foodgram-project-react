@@ -68,6 +68,7 @@ class Recipe(models.Model):
         "Время готовки",
         validators=[
             MinValueValidator(1, message='Время должно быть больше 1 минуты.'),
+            MaxValueValidator(5760, message='Не больше 4 суток!')
         ],
     )
     text = models.TextField(verbose_name="Описание")
@@ -104,8 +105,7 @@ class RecipeIngredient(models.Model):
         verbose_name="Ингредиент",
         validators=[
             MinValueValidator(1, message="Минимальное количество 1!"),
-            MaxValueValidator(5760, message='Не больше 4 суток!')
-        ],
+            ],
     )
     amount = models.PositiveSmallIntegerField(
         verbose_name="Количество",
@@ -179,45 +179,38 @@ class TagInRecipe(models.Model):
         return f"{self.tag} {self.recipe}"
 
 
-class ShoppingCart(models.Model):
+class UserRecipe(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="shopping_user",
         verbose_name="Пользователь",
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name="shopping_recipe",
         verbose_name="Рецепт",
     )
 
     class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.user} {self.recipe}"
+
+
+class ShoppingCart(UserRecipe):
+    class Meta:
         verbose_name = "Список покупок"
         verbose_name_plural = "Списки покупок"
+        default_related_name = 'shopping_recipe'
         constraints = [
             models.UniqueConstraint(
                 fields=["user", "recipe"], name="unique_shoppingcart"
             )
         ]
 
-    def __str__(self):
-        return f"{self.user} {self.recipe}"
 
-
-class Favorite(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name="Пользователь",
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        verbose_name="Рецепт",
-    )
-
+class Favorite(UserRecipe):
     class Meta:
         verbose_name = "Избранное"
         verbose_name_plural = "Избранное"
@@ -226,6 +219,3 @@ class Favorite(models.Model):
             models.UniqueConstraint(
                 fields=["user", "recipe"], name="unique_favorite")
         ]
-
-    def __str__(self):
-        return f"Пользователь {self.user} добавил {self.recipe} в избранное."
