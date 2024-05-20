@@ -233,6 +233,6 @@ class RecipeViewSet(ModelViewSet):
             response_object.write(
                 f"Ингредиент: {ingredient[0]},"
                 f"Единица измерения: {ingredient[1]},"
-                f" Количество: {ingredient[2]}\n"
+                f"Количество: {ingredient[2]}\n"
             )
         return response_object
