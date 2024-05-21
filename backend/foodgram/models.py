@@ -133,7 +133,7 @@ class RecipeIngredient(models.Model):
         ]
 
     def __str__(self):
-        return self.ingredient
+        return f'{self.ingredient} {self.recipe}'
 
 
 class Follow(models.Model):
