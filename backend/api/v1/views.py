@@ -16,7 +16,6 @@ from rest_framework.viewsets import ModelViewSet
 
 from foodgram.models import (
     Favorite,
-    Follow,
     Ingredient,
     RecipeIngredient,
     Recipe,

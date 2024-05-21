@@ -8,8 +8,8 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
 from foodgram.constants import MAX_VALUE, MIN_VALUE
-from foodgram.models import (Favorite, Follow, Ingredient, Recipe, TagInRecipe,
-                             RecipeIngredient, ShoppingCart, Tag)
+from foodgram.models import (Follow, Ingredient, Recipe,
+                             RecipeIngredient, Tag)
 from user.models import User
 
 
