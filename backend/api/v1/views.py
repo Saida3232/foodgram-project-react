@@ -47,7 +47,7 @@ class CustomUserViewSet(UserViewSet):
     def get_permissions(self):
         if self.action == "me":
             return (IsAuthenticated(),)
-        elif self.action == 'retrive':
+        if self.action == 'retrive':
             return (AllowAny(),)
         return super().get_permissions()
 
@@ -65,7 +65,7 @@ class CustomUserViewSet(UserViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(
-        detail=True, methods=["post"],
+        detail=True, methods=["post", 'delete'],
         permission_classes=[IsAuthenticated]
     )
     def subscribe(self, request, id=None):
@@ -75,20 +75,14 @@ class CustomUserViewSet(UserViewSet):
                 data={"user": request.user.id, "author": id},
                 context={"request": request}
             )
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data,
-                                status=status.HTTP_201_CREATED)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data,
+                            status=status.HTTP_201_CREATED)
 
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        elif request.method == "DELETE":
-            subscriptions = Follow.objects.filter(user=request.user,
-                                                  author=author)
-
-            if subscriptions.exists():
-                subscriptions.delete()
+        if request.method == "DELETE":
+            if author.follow.exists():
+                author.follow.filter(user=request.user).delete()
                 return Response(
                     "Вы отписались от пользователя.",
                     status=status.HTTP_204_NO_CONTENT
@@ -165,7 +159,7 @@ class RecipeViewSet(ModelViewSet):
                 favorite = Favorite.objects.get(user=user, recipe=recipe)
                 favorite.delete()
                 return Response(
-                    "Рецепт добавлен в избранное.",
+                    "Удалили рецепт из избранного",
                     status=status.HTTP_204_NO_CONTENT
                 )
             except Favorite.DoesNotExist:
@@ -229,10 +223,10 @@ class RecipeViewSet(ModelViewSet):
         response_object["Content-Disposition"] = (
             "attachment; filename=ingredients.txt")
 
-        for ingredient in ingredients:
+        for ingredient, measurement_unit, amount in ingredients:
             response_object.write(
-                f"Ингредиент: {ingredient[0]},"
-                f"Единица измерения: {ingredient[1]},"
-                f"Количество: {ingredient[2]}\n"
+                f"Ингредиент: {ingredient},"
+                f"Единица измерения: {measurement_unit},"
+                f"Количество: {amount}\n"
             )
         return response_object
