@@ -78,7 +78,7 @@ class CustomUserSerializer(UserCreateSerializer):
         user = self.context["request"].user
 
         if user.is_authenticated:
-            return obj.follow.exists()
+            return obj.follow.filter(user=user).exists()
         return False
 
 
@@ -130,7 +130,7 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
         user = request.user
         recipe = obj
         if user.is_authenticated:
-            return recipe.favorites.exists()
+            return recipe.favorites.filter(user=user).exists()
         return False
 
     def get_is_in_shopping_cart(self, obj):
@@ -138,7 +138,7 @@ class ReadRecipeSerializer(serializers.ModelSerializer):
         user = request.user
         recipe = obj
         if user.is_authenticated:
-            return recipe.shopping_recipe.exists()
+            return recipe.shopping_recipe.filter(user=user).exists()
         return False
 
 
@@ -157,7 +157,7 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         many=True, queryset=Tag.objects.all())
     image = Base64ImageField(use_url=True)
     cooking_time = serializers.IntegerField(
-        min_value=MIN_VALUE, max_value=32000)
+        min_value=MIN_VALUE, max_value=MAX_VALUE)
 
     class Meta:
         model = Recipe
@@ -273,7 +273,8 @@ class FollowCreateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         user = data["user"]
         author = data["author"]
-        if author.follow.exists():
+        if user.follower.filter(
+                author=author).exists():
             raise serializers.ValidationError(
                 "Вы уже подписались на этого пользователя.",
             )

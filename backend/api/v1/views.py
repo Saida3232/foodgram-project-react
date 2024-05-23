@@ -80,8 +80,8 @@ class CustomUserViewSet(UserViewSet):
                             status=status.HTTP_201_CREATED)
 
         if request.method == "DELETE":
-            if author.follow.exists():
-                author.follow.filter(user=request.user).delete()
+            if request.user.follower.filter(author=author).exists():
+                request.user.follower.filter(author=author).delete()
                 return Response(
                     "Вы отписались от пользователя.",
                     status=status.HTTP_204_NO_CONTENT
