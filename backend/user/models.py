@@ -1,20 +1,20 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
+
 # Create your models here.
 
+
 class User(AbstractUser):
-    email = models.EmailField("email_address", unique=True, max_length=254)
-    first_name = models.CharField("first_name", max_length=254)
-    last_name = models.CharField("last_name", max_length=254)
+    email = models.EmailField("email", unique=True, max_length=150)
+    first_name = models.CharField("first_name", max_length=150)
+    last_name = models.CharField("last_name", max_length=150)
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name','username']
+    REQUIRED_FIELDS = ['first_name', 'last_name', 'username']
 
     class Meta(AbstractUser.Meta):
         ordering = ['id']
-    
-    def __str__(self):
-        """Строковое представление модели"""
 
+    def __str__(self):
         return self.username
 
 
@@ -27,7 +27,6 @@ class Follow(models.Model):
         User, on_delete=models.CASCADE,
         related_name='followers',
         verbose_name='подписки')
-    created = models.DateTimeField("time created",auto_now_add=True)
 
     class Meta:
         verbose_name = 'подписка'
@@ -41,4 +40,3 @@ class Follow(models.Model):
 
     def __str__(self) -> str:
         return f'{self.user} : {self.following}'
-    
